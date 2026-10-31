@@ -38,7 +38,7 @@
 #include <API/CSInterfaces.h>
 
 #define REGAMEDLL_API_VERSION_MAJOR 5
-#define REGAMEDLL_API_VERSION_MINOR 31
+#define REGAMEDLL_API_VERSION_MINOR 32
 
 // CBasePlayer::Spawn hook
 typedef IHookChainClass<void, class CBasePlayer> IReGameHook_CBasePlayer_Spawn;
@@ -839,6 +839,15 @@ struct ReGameFuncs_t {
 	void (*TextureTypePlaySound)(TraceResult *ptr, Vector vecSrc, Vector vecEnd, int iBulletType);
 	class CWeaponBox *(*CreateWeaponBox)(CBasePlayerItem *pItem, CBasePlayer *pPlayerOwner, const char *modelName, Vector &origin, Vector &angles, Vector &velocity, float lifeTime, bool packAmmo);
 	class CGrenade *(*SpawnGrenade)(WeaponIdType weaponId, entvars_t *pevOwner, Vector &vecSrc, Vector &vecThrow, float time, int iTeam, unsigned short usEvent);
+
+	// ls2: orders for a living bot (false: not a living bot, or not on the nav mesh). MoveTo: walk (hurry: run, the
+	// fastest route) to a far position. HideNear: hide at a hiding spot within range of pos for duration seconds.
+	// StateName: what it is doing ("Idle", "Hunt", "Attack", "MoveTo", "Hide"...; "" not a bot). PathLength: the
+	// length of its way to pos along the nav mesh, -1 none.
+	bool (*CSBot_MoveTo)(class CBasePlayer *pBot, const Vector &pos, bool hurry);
+	bool (*CSBot_HideNear)(class CBasePlayer *pBot, const Vector &pos, float duration, float range);
+	const char *(*CSBot_StateName)(class CBasePlayer *pBot);
+	float (*CSBot_PathLength)(class CBasePlayer *pBot, const Vector &pos);
 };
 
 class IReGameApi {

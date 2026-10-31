@@ -412,6 +412,7 @@ public:
 	bool GuardRandomZone(float range = 500.0f);			// pick a random zone and hide near it
 
 	bool IsBusy() const;								// return true if we are busy doing something important
+	const char *GetStateName() const { return m_isAttacking ? "Attack" : m_state ? m_state->GetName() : ""; } // ls2: for the API
 
 	// high-level tasks
 	enum TaskType

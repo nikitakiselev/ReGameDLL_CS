@@ -143,6 +143,61 @@ CGrenade *EXT_FUNC SpawnGrenade_api(WeaponIdType weaponId, entvars_t *pevOwner, 
 	return nullptr;
 }
 
+// ls2: orders for a bot from a plugin
+static CCSBot *ApiBot(CBasePlayer *pPlayer)
+{
+	if (!pPlayer || !pPlayer->IsBot() || !pPlayer->IsAlive())
+		return nullptr;
+
+	CCSBot *pBot = static_cast<CCSBot *>(pPlayer);
+	return pBot->GetLastKnownArea() ? pBot : nullptr;
+}
+
+bool EXT_FUNC CSBot_MoveTo_api(CBasePlayer *pPlayer, const Vector &pos, bool hurry)
+{
+	CCSBot *pBot = ApiBot(pPlayer);
+	if (!pBot)
+		return false;
+
+	if (hurry)
+		pBot->Run();
+
+	pBot->MoveTo(&pos, hurry ? FASTEST_ROUTE : SAFEST_ROUTE);
+	return true;
+}
+
+bool EXT_FUNC CSBot_HideNear_api(CBasePlayer *pPlayer, const Vector &pos, float duration, float range)
+{
+	CCSBot *pBot = ApiBot(pPlayer);
+	if (!pBot)
+		return false;
+
+	Vector at = pos;
+	CNavArea *area = TheNavAreaGrid.GetNearestNavArea(&at);
+	return area && pBot->TryToHide(area, duration, range, false, false);
+}
+
+const char *EXT_FUNC CSBot_StateName_api(CBasePlayer *pPlayer)
+{
+	CCSBot *pBot = ApiBot(pPlayer);
+	return pBot ? pBot->GetStateName() : "";
+}
+
+float EXT_FUNC CSBot_PathLength_api(CBasePlayer *pPlayer, const Vector &pos)
+{
+	CCSBot *pBot = ApiBot(pPlayer);
+	if (!pBot)
+		return -1.0f;
+
+	Vector at = pos;
+	CNavArea *goal = TheNavAreaGrid.GetNearestNavArea(&at);
+	if (!goal)
+		return -1.0f;
+
+	ShortestPathCost cost;
+	return NavAreaTravelDistance(pBot->GetLastKnownArea(), goal, cost);
+}
+
 ReGameFuncs_t g_ReGameApiFuncs = {
 	CREATE_NAMED_ENTITY,
 
@@ -176,6 +231,11 @@ ReGameFuncs_t g_ReGameApiFuncs = {
 	TextureTypePlaySound_api,
 	CreateWeaponBox_api,
 	SpawnGrenade_api,
+
+	CSBot_MoveTo_api,
+	CSBot_HideNear_api,
+	CSBot_StateName_api,
+	CSBot_PathLength_api,
 };
 
 GAMEHOOK_REGISTRY(CBasePlayer_Spawn);
