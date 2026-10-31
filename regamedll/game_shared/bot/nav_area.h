@@ -1162,6 +1162,7 @@ void EditNavAreasReset();
 void DrawHidingSpots(const CNavArea *area);
 void IncreaseDangerNearby(int teamID, float amount, CNavArea *startArea, const Vector *pos, float maxRadius);
 void DrawDanger();
+void SetNavObstacles(const float *boxes, int count);	// ls2: a plugin's solid boxes, 6 floats each (mins, maxs)
 bool IsSpotOccupied(CBaseEntity *me, const Vector *pos);	// if a player is at the given spot, return true
 const Vector *FindNearbyHidingSpot(CBaseEntity *me, const Vector *pos, CNavArea *startArea, float maxRange = 1000.0f, bool isSniper = false, bool useNearest = false);
 const Vector *FindNearbyRetreatSpot(CBaseEntity *me, const Vector *start, CNavArea *startArea, float maxRange = 1000.0f, int avoidTeam = 0, bool useCrouchAreas = true);

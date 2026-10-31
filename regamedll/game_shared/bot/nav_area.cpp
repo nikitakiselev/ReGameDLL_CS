@@ -3119,9 +3119,32 @@ void DrawDanger()
 }
 
 // If a player is at the given spot, return true
+// ls2: solid boxes the nav mesh does not know of — a plugin's buildings: a hiding spot in one of them is taken
+static std::vector<Extent> navObstacles;
+
+void SetNavObstacles(const float *boxes, int count)
+{
+	navObstacles.clear();
+	for (int i = 0; boxes && i < count; i++)
+	{
+		const float *b = &boxes[i * 6];
+		Extent e;
+		e.lo = Vector(b[0] - HalfHumanWidth, b[1] - HalfHumanWidth, b[2] - StepHeight); // a spot is on the floor
+		e.hi = Vector(b[3] + HalfHumanWidth, b[4] + HalfHumanWidth, b[5]);
+		navObstacles.push_back(e);
+	}
+}
+
 bool IsSpotOccupied(CBaseEntity *pEntity, const Vector *pos)
 {
 	const float closeRange = 75.0f;
+
+	// a spot on the floor taken by a building, or one a standing player there would be inside of
+	for (auto const &e : navObstacles)
+	{
+		if (e.Contains(pos))
+			return true;
+	}
 
 	// is there a player in this spot
 	float range;

@@ -198,6 +198,64 @@ float EXT_FUNC CSBot_PathLength_api(CBasePlayer *pPlayer, const Vector &pos)
 	return NavAreaTravelDistance(pBot->GetLastKnownArea(), goal, cost);
 }
 
+bool EXT_FUNC CSBot_Idle_api(CBasePlayer *pPlayer)
+{
+	CCSBot *pBot = ApiBot(pPlayer);
+	if (!pBot)
+		return false;
+
+	pBot->Idle();
+	return true;
+}
+
+bool EXT_FUNC CSBot_ShootAt_api(CBasePlayer *pPlayer, const Vector &pos, float duration)
+{
+	CCSBot *pBot = ApiBot(pPlayer);
+	if (!pBot)
+		return false;
+
+	pBot->ShootAtSpot(pos, duration);
+	return true;
+}
+
+bool EXT_FUNC CSBot_RetreatFrom_api(CBasePlayer *pPlayer, const Vector &from, float range, float duration)
+{
+	CCSBot *pBot = ApiBot(pPlayer);
+	return pBot && pBot->RetreatFrom(from, range, duration);
+}
+
+void EXT_FUNC CSBot_MarkDanger_api(int team, const Vector &pos, float range, float amount)
+{
+	if ((team != TERRORIST && team != CT) || range <= 0.0f)
+		return;
+
+	for (auto area : TheNavAreaList)
+	{
+		const Vector *center = area->GetCenter();
+		float dist = (*center - pos).Length();
+		if (dist > range)
+			continue;
+
+		// the danger falls off to nothing at the range; raised up to it, never piled up
+		float want = amount * (1.0f - dist / range);
+		float have = area->GetDanger(team - 1);
+		if (want <= have)
+			continue;
+
+		TraceResult result;
+		UTIL_TraceLine(pos, *center + Vector(0, 0, HalfHumanHeight), ignore_monsters, nullptr, &result);
+		if (result.flFraction < 1.0f)
+			continue;
+
+		area->IncreaseDanger(team - 1, want - have);
+	}
+}
+
+void EXT_FUNC CSBot_SetObstacles_api(const float *boxes, int count)
+{
+	SetNavObstacles(boxes, count);
+}
+
 ReGameFuncs_t g_ReGameApiFuncs = {
 	CREATE_NAMED_ENTITY,
 
@@ -236,6 +294,12 @@ ReGameFuncs_t g_ReGameApiFuncs = {
 	CSBot_HideNear_api,
 	CSBot_StateName_api,
 	CSBot_PathLength_api,
+
+	CSBot_Idle_api,
+	CSBot_ShootAt_api,
+	CSBot_RetreatFrom_api,
+	CSBot_MarkDanger_api,
+	CSBot_SetObstacles_api,
 };
 
 GAMEHOOK_REGISTRY(CBasePlayer_Spawn);

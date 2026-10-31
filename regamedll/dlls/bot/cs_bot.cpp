@@ -890,6 +890,68 @@ const Vector *FindNearbyRetreatSpot(CCSBot *me, float maxRange)
 	return collector.m_spot[which];
 }
 
+// ls2: hide at the nearest hiding spot within range that cannot be seen from a point — out of an enemy building's fire
+class CollectHiddenFromFunctor
+{
+public:
+	CollectHiddenFromFunctor(CCSBot *me, const Vector &from, float range) : m_me(me), m_from(from), m_range(range) {}
+
+	bool operator()(CNavArea *area)
+	{
+		for (auto const spot : *area->GetHidingSpotList())
+		{
+			const Vector *pos = spot->GetPosition();
+			float range = (*pos - m_me->pev->origin).Length();
+			if (range > m_range || (m_best && range >= m_bestRange) || IsSpotOccupied(m_me, pos))
+				continue;
+
+			// away from it, not across its fire towards it
+			if ((*pos - m_from).Length() < (m_me->pev->origin - m_from).Length())
+				continue;
+
+			// both the chest and the head of one standing there out of its sight
+			TraceResult result;
+			UTIL_TraceLine(m_from, *pos + Vector(0, 0, HalfHumanHeight), ignore_monsters, nullptr, &result);
+			if (result.flFraction >= 1.0f)
+				continue;
+
+			UTIL_TraceLine(m_from, *pos + Vector(0, 0, HumanHeight), ignore_monsters, nullptr, &result);
+			if (result.flFraction >= 1.0f)
+				continue;
+
+			m_best = pos;
+			m_bestRange = range;
+		}
+
+		return true;
+	}
+
+	CCSBot *m_me;
+	Vector m_from;
+	float m_range;
+	const Vector *m_best = nullptr;
+	float m_bestRange = 0.0f;
+};
+
+bool CCSBot::RetreatFrom(const Vector &from, float range, float duration)
+{
+	CNavArea *area = GetLastKnownArea();
+	if (!area)
+		return false;
+
+	CollectHiddenFromFunctor collector(this, from, range);
+	SearchSurroundingAreas(area, &pev->origin, collector, range);
+	if (!collector.m_best)
+		return false;
+
+	// as TryToRetreat: no new fight on the way to cover; reaching it clears the disposition
+	IgnoreEnemies(2.0f);
+	StandUp();
+	Run();
+	Hide(collector.m_best, duration);
+	return IsHiding();
+}
+
 // Return euclidean distance to farthest escorted hostage.
 // Return -1 if no hostage is following us.
 float CCSBot::GetRangeToFarthestEscortedHostage() const

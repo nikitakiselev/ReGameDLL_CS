@@ -487,6 +487,9 @@ void CCSBot::Update()
 		FireWeaponAtEnemy();
 	}
 
+	// ls2: a plugin's target that is not a player
+	UpdateShootAtSpot();
+
 	if (IsEndOfSafeTime() && IsUsingGrenade() && (IsWellPastSafe() || !IsUsingHEGrenade()) && !m_isWaitingToTossGrenade)
 	{
 		Vector target;
@@ -825,4 +828,30 @@ void CCSBot::Update()
 
 	// remember our prior safe time status
 	m_wasSafe = IsSafe();
+}
+
+// ls2: fire on a plugin's target (an enemy building) while it lasts — not while fighting a player, nor with a grenade
+void CCSBot::UpdateShootAtSpot()
+{
+	if (m_ls2ShootUntil <= gpGlobals->time || IsAttacking() || IsUsingGrenade())
+		return;
+
+	if (IsUsingKnife())
+	{
+		EquipBestWeapon(MUST_EQUIP);
+		return;
+	}
+
+	SetLookAt("Building", &m_ls2ShootAt, PRIORITY_HIGH, 0.5f);
+	if (IsActiveWeaponReloading() || IsActiveWeaponClipEmpty() || !IsLookingAtPosition(&m_ls2ShootAt, 5.0f))
+		return;
+
+	if (IsUsingPistol() || IsUsingShotgun() || IsUsingSniperRifle())
+	{
+		m_ls2ShootToggle = !m_ls2ShootToggle;
+		if (!m_ls2ShootToggle)
+			return;
+	}
+
+	PrimaryAttack();
 }

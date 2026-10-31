@@ -414,6 +414,14 @@ public:
 	bool IsBusy() const;								// return true if we are busy doing something important
 	const char *GetStateName() const { return m_isAttacking ? "Attack" : m_state ? m_state->GetName() : ""; } // ls2: for the API
 
+	// ls2: a target that is not a player — an enemy building — to look at and fire on while it lasts (the API)
+	void ShootAtSpot(const Vector &pos, float duration) { m_ls2ShootAt = pos; m_ls2ShootUntil = gpGlobals->time + duration; }
+	void UpdateShootAtSpot();
+	bool RetreatFrom(const Vector &from, float range, float duration); // ls2: hide out of sight of from (the API)
+	Vector m_ls2ShootAt;
+	float m_ls2ShootUntil = 0.0f;
+	bool m_ls2ShootToggle = false;	// semi-automatics: the trigger let go every other think
+
 	// high-level tasks
 	enum TaskType
 	{

@@ -38,7 +38,7 @@
 #include <API/CSInterfaces.h>
 
 #define REGAMEDLL_API_VERSION_MAJOR 5
-#define REGAMEDLL_API_VERSION_MINOR 32
+#define REGAMEDLL_API_VERSION_MINOR 33
 
 // CBasePlayer::Spawn hook
 typedef IHookChainClass<void, class CBasePlayer> IReGameHook_CBasePlayer_Spawn;
@@ -848,6 +848,17 @@ struct ReGameFuncs_t {
 	bool (*CSBot_HideNear)(class CBasePlayer *pBot, const Vector &pos, float duration, float range);
 	const char *(*CSBot_StateName)(class CBasePlayer *pBot);
 	float (*CSBot_PathLength)(class CBasePlayer *pBot, const Vector &pos);
+
+	// ls2: Idle: drop what it is doing (a MoveTo) and choose anew. ShootAt: look at pos and fire on it for duration
+	// seconds when not fighting a player (0: stop). RetreatFrom: hide at the nearest hiding spot within range that pos
+	// cannot see. MarkDanger: raise the danger of team's nav areas seen from pos to amount, falling off to 0 at range —
+	// its bots' safe routes go around. SetObstacles: solid boxes the nav mesh does not know of (count × mins, maxs);
+	// hiding spots in them are taken.
+	bool (*CSBot_Idle)(class CBasePlayer *pBot);
+	bool (*CSBot_ShootAt)(class CBasePlayer *pBot, const Vector &pos, float duration);
+	bool (*CSBot_RetreatFrom)(class CBasePlayer *pBot, const Vector &from, float range, float duration);
+	void (*CSBot_MarkDanger)(int team, const Vector &pos, float range, float amount);
+	void (*CSBot_SetObstacles)(const float *boxes, int count);
 };
 
 class IReGameApi {
