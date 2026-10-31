@@ -38,7 +38,7 @@
 #include <API/CSInterfaces.h>
 
 #define REGAMEDLL_API_VERSION_MAJOR 5
-#define REGAMEDLL_API_VERSION_MINOR 30
+#define REGAMEDLL_API_VERSION_MINOR 31
 
 // CBasePlayer::Spawn hook
 typedef IHookChainClass<void, class CBasePlayer> IReGameHook_CBasePlayer_Spawn;
@@ -640,6 +640,11 @@ typedef IHookChainRegistryClass<void, class CBasePlayer, class CBasePlayer *, fl
 typedef IHookChain<void, CBasePlayer *, const char *, BOOL, const char*, const char*, const char*, bool, const char*, bool> IReGameHook_SendSayMessage;
 typedef IHookChainRegistry<void, CBasePlayer *, const char *, BOOL, const char*, const char*, const char*, bool, const char*, bool> IReGameHookRegistry_SendSayMessage;
 
+// CSBot_SeesPlayer hook: the bot (its skill 0..1) has a line of sight to these parts of the player (CCSBot::IsVisible);
+// false - it does not see the player after all
+typedef IHookChain<bool, CBasePlayer *, CBasePlayer *, unsigned char, float> IReGameHook_CSBot_SeesPlayer;
+typedef IHookChainRegistry<bool, CBasePlayer *, CBasePlayer *, unsigned char, float> IReGameHookRegistry_CSBot_SeesPlayer;
+
 class IReGameHookchains {
 public:
 	virtual ~IReGameHookchains() {}
@@ -807,6 +812,7 @@ public:
 	virtual IReGameHookRegistry_CBasePlayer_TakeDamageImpulse *CBasePlayer_TakeDamageImpulse() = 0;
 
 	virtual IReGameHookRegistry_SendSayMessage *SendSayMessage() = 0;
+	virtual IReGameHookRegistry_CSBot_SeesPlayer *CSBot_SeesPlayer() = 0;
 };
 
 struct ReGameFuncs_t {

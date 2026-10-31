@@ -1792,4 +1792,8 @@ void startProgressMeter(const char *title);
 void hideProgressMeter();
 
 bool isSniperRifle(CBasePlayerItem *item);
+
+// The last word on a player the bot has a line of sight to: false - it does not see the player after all
+bool CSBot_SeesPlayer(CBasePlayer *pBot, CBasePlayer *pPlayer, unsigned char visParts, float skill);
+bool CSBot_SeesPlayer_OrigFunc(CBasePlayer *pBot, CBasePlayer *pPlayer, unsigned char visParts, float skill);
 float StayOnLadderLine(CCSBot *me, const CNavLadder *ladder);

@@ -761,6 +761,10 @@ typedef IHookChainRegistryClassImpl<void, CBasePlayer, CBasePlayer *, float, flo
 typedef IHookChainImpl<void, CBasePlayer *, const char *, BOOL, const char*, const char*, const char*, bool, const char*, bool> CReGameHook_SendSayMessage;
 typedef IHookChainRegistryImpl<void, CBasePlayer *, const char *, BOOL, const char*, const char*, const char*, bool, const char*, bool> CReGameHookRegistry_SendSayMessage;
 
+// CSBot_SeesPlayer hook
+typedef IHookChainImpl<bool, CBasePlayer *, CBasePlayer *, unsigned char, float> CReGameHook_CSBot_SeesPlayer;
+typedef IHookChainRegistryImpl<bool, CBasePlayer *, CBasePlayer *, unsigned char, float> CReGameHookRegistry_CSBot_SeesPlayer;
+
 class CReGameHookchains: public IReGameHookchains {
 public:
 	// CBasePlayer virtual
@@ -926,6 +930,7 @@ public:
 	CReGameHookRegistry_CBasePlayer_TakeDamageImpulse m_CBasePlayer_TakeDamageImpulse;
 
 	CReGameHookRegistry_SendSayMessage m_SendSayMessage;
+	CReGameHookRegistry_CSBot_SeesPlayer m_CSBot_SeesPlayer;
 
 public:
 	virtual IReGameHookRegistry_CBasePlayer_Spawn *CBasePlayer_Spawn();
@@ -1091,6 +1096,7 @@ public:
 	virtual IReGameHookRegistry_CBasePlayer_TakeDamageImpulse *CBasePlayer_TakeDamageImpulse();
 
 	virtual IReGameHookRegistry_SendSayMessage *SendSayMessage();
+	virtual IReGameHookRegistry_CSBot_SeesPlayer *CSBot_SeesPlayer();
 };
 
 extern CReGameHookchains g_ReGameHookchains;

@@ -340,6 +340,7 @@ GAMEHOOK_REGISTRY(CBasePlayer_UpdateStatusBar);
 GAMEHOOK_REGISTRY(CBasePlayer_TakeDamageImpulse);
 
 GAMEHOOK_REGISTRY(SendSayMessage);
+GAMEHOOK_REGISTRY(CSBot_SeesPlayer);
 
 int CReGameApi::GetMajorVersion() {
 	return REGAMEDLL_API_VERSION_MAJOR;

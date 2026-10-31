@@ -251,6 +251,13 @@ bool CCSBot::IsVisible(const Vector *pos, bool testFOV) const
 	return true;
 }
 
+LINK_HOOK_CHAIN(bool, CSBot_SeesPlayer, (CBasePlayer *pBot, CBasePlayer *pPlayer, unsigned char visParts, float skill), pBot, pPlayer, visParts, skill)
+
+bool EXT_FUNC __API_HOOK(CSBot_SeesPlayer)(CBasePlayer *pBot, CBasePlayer *pPlayer, unsigned char visParts, float skill)
+{
+	return true;
+}
+
 // Return true if we can see any part of the player
 // Check parts in order of importance. Return the first part seen in "visParts" if it is non-NULL.
 bool CCSBot::IsVisible(CBasePlayer *pPlayer, bool testFOV, unsigned char *visParts) const
@@ -302,6 +309,11 @@ bool CCSBot::IsVisible(CBasePlayer *pPlayer, bool testFOV, unsigned char *visPar
 
 	if (IsVisible(&spot, testFOV))
 		testVisParts |= RIGHT_SIDE;
+
+#ifdef REGAMEDLL_API
+	if (testVisParts != NONE && !CSBot_SeesPlayer(const_cast<CCSBot *>(this), pPlayer, testVisParts, GetProfile()->GetSkill()))
+		testVisParts = NONE;
+#endif
 
 	if (visParts)
 		*visParts = testVisParts;
