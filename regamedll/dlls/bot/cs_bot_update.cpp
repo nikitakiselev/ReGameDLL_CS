@@ -162,10 +162,10 @@ void CCSBot::Upkeep()
 		}
 		}
 
-		float driftAmplitude = 2.0f;
+		float driftAmplitude = m_ls2ShootUntil > gpGlobals->time ? 0.0f : 2.0f;
 
 		// have view "drift" very slowly, so view looks "alive"
-		if (IsUsingSniperRifle() && IsUsingScope())
+		if (IsUsingSniperRifle() && IsUsingScope() && m_ls2ShootUntil <= gpGlobals->time)
 		{
 			driftAmplitude = 0.5f;
 		}
@@ -842,8 +842,10 @@ void CCSBot::UpdateShootAtSpot()
 		return;
 	}
 
-	SetLookAt("Building", &m_ls2ShootAt, PRIORITY_HIGH, 0.5f);
-	if (IsActiveWeaponReloading() || IsActiveWeaponClipEmpty() || !IsLookingAtPosition(&m_ls2ShootAt, 5.0f))
+	SetLookAt("Building", &m_ls2ShootAt, PRIORITY_HIGH, 0.5f, false, 0.3f);
+	if (AdjustZoom((m_ls2ShootAt - GetEyePosition()).Length()))
+		return;
+	if (IsActiveWeaponReloading() || IsActiveWeaponClipEmpty() || !IsLookingAtPosition(&m_ls2ShootAt, 0.3f))
 		return;
 
 	if (IsUsingPistol() || IsUsingShotgun() || IsUsingSniperRifle())

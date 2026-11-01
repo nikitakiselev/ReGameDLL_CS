@@ -571,6 +571,7 @@ public:
 	bool AStarSearch(CNavArea *startArea, CNavArea *goalArea);					// find shortest path from startArea to goalArea - don't actually buid the path
 	bool ComputePath(CNavArea *goalArea, const Vector *goal, RouteType route);	// compute path to goal position
 	bool StayOnNavMesh();
+	bool Repath(); // ls2: recompute the current goal without the normal repath throttle
 	CNavArea *GetLastKnownArea() const;									// return the last area we know we were inside of
 	const Vector &GetPathEndpoint() const;								// return final position of our current path
 	float GetPathDistanceRemaining() const;								// eturn estimated distance left to travel along path
@@ -1579,6 +1580,9 @@ public:
 	float m_farRange;
 };
 
+bool CSBot_CanTravel(CBasePlayer *bot, const Vector &from, const Vector &to, bool planning);
+bool CSBot_CanTravel_OrigFunc(CBasePlayer *bot, const Vector &from, const Vector &to, bool planning);
+
 // Functor used with NavAreaBuildPath()
 class PathCost
 {
@@ -1590,6 +1594,9 @@ public:
 	}
 	float operator()(CNavArea *area, CNavArea *fromArea, const CNavLadder *ladder)
 	{
+		if (fromArea && !CSBot_CanTravel(m_bot, *fromArea->GetCenter(), *area->GetCenter(), true))
+			return -1.0f;
+
 		const float baseDangerFactor = 100.0f;
 
 		// respond to the danger modulated by our aggression (even super-aggressives pay SOME attention to danger)

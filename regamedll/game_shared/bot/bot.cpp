@@ -287,6 +287,30 @@ void CBot::ExecuteCommand()
 		botCmd.viewangles  = pev->v_angle;
 	}
 
+	// Give adapters the final command, including combat strafing and mimics.
+	// Check a short braking horizon using both desired and current velocity.
+	float yaw = botCmd.viewangles.y * (M_PI / 180.0f);
+	Vector wish(cos(yaw) * botCmd.forwardmove + sin(yaw) * botCmd.sidemove,
+		sin(yaw) * botCmd.forwardmove - cos(yaw) * botCmd.sidemove, botCmd.upmove);
+	Vector ahead = pev->origin + (wish + pev->velocity) * 0.1f;
+	// A jump starts via a button, before upward velocity exists. Check its
+	// ascent as well as the ordinary command. Refuse uncrouching under a beam.
+	if ((botCmd.buttons & IN_JUMP) && (pev->flags & FL_ONGROUND) &&
+		!CSBot_CanTravel(this, pev->origin, ahead + Vector(0, 0, 64), false))
+		botCmd.buttons &= ~IN_JUMP;
+	if ((pev->flags & FL_DUCKING) && !(botCmd.buttons & IN_DUCK))
+	{
+		Vector feet = pev->origin - Vector(0, 0, 18);
+		if (!CSBot_CanTravel(this, feet, ahead - Vector(0, 0, 18), true))
+			botCmd.buttons |= IN_DUCK;
+	}
+	if (!CSBot_CanTravel(this, pev->origin, ahead, false))
+	{
+		botCmd.forwardmove = botCmd.sidemove = botCmd.upmove = 0;
+		botCmd.buttons &= ~(IN_FORWARD | IN_BACK | IN_MOVELEFT | IN_MOVERIGHT | IN_JUMP);
+		pev->velocity.x = pev->velocity.y = 0;
+	}
+
 	// player model is "munged"
 	pev->angles = pev->v_angle;
 	pev->angles.x /= -3.0f;

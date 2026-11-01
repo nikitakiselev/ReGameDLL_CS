@@ -177,6 +177,8 @@ bool CCSBot::Initialize(const BotProfile *profile)
 // Reset internal data to initial state
 void CCSBot::ResetValues()
 {
+	m_ls2ShootUntil = 0;
+	m_ls2ShootToggle = false;
 	m_chatter.Reset();
 	m_gameState.Reset();
 

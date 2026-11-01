@@ -183,6 +183,20 @@ const char *EXT_FUNC CSBot_StateName_api(CBasePlayer *pPlayer)
 	return pBot ? pBot->GetStateName() : "";
 }
 
+// Keep actual shortest distances for callers estimating item detours. The
+// ordinary PathCost also includes tactical/crouch penalties and is not a length.
+class BotTravelDistance
+{
+public:
+	CCSBot *bot;
+	float operator()(CNavArea *area, CNavArea *from, const CNavLadder *ladder)
+	{
+		if (from && !CSBot_CanTravel(bot, *from->GetCenter(), *area->GetCenter(), true))
+			return -1.0f;
+		return ShortestPathCost()(area, from, ladder);
+	}
+};
+
 float EXT_FUNC CSBot_PathLength_api(CBasePlayer *pPlayer, const Vector &pos)
 {
 	CCSBot *pBot = ApiBot(pPlayer);
@@ -194,7 +208,13 @@ float EXT_FUNC CSBot_PathLength_api(CBasePlayer *pPlayer, const Vector &pos)
 	if (!goal)
 		return -1.0f;
 
-	ShortestPathCost cost;
+	BotTravelDistance cost{pBot};
+	if (pBot->GetLastKnownArea() == goal)
+	{
+		Vector feet(pBot->pev->origin.x, pBot->pev->origin.y, pBot->GetFeetZ());
+		if (!CSBot_CanTravel(pBot, feet, pos, true))
+			return -1.0f;
+	}
 	return NavAreaTravelDistance(pBot->GetLastKnownArea(), goal, cost);
 }
 
@@ -256,6 +276,20 @@ void EXT_FUNC CSBot_SetObstacles_api(const float *boxes, int count)
 	SetNavObstacles(boxes, count);
 }
 
+bool EXT_FUNC CSBot_Visible_api(CBasePlayer *player, const Vector &pos)
+{
+	// Sight does not require a previously visited nav area (a just-spawned
+	// or paused bot still has eyes, even before its first navigation think).
+	return player && player->IsBot() && player->IsAlive() &&
+		static_cast<CCSBot *>(player)->IsVisible(&pos, true);
+}
+
+bool EXT_FUNC CSBot_Repath_api(CBasePlayer *player)
+{
+	CCSBot *bot = ApiBot(player);
+	return bot && bot->Repath();
+}
+
 ReGameFuncs_t g_ReGameApiFuncs = {
 	CREATE_NAMED_ENTITY,
 
@@ -300,6 +334,8 @@ ReGameFuncs_t g_ReGameApiFuncs = {
 	CSBot_RetreatFrom_api,
 	CSBot_MarkDanger_api,
 	CSBot_SetObstacles_api,
+	CSBot_Visible_api,
+	CSBot_Repath_api,
 };
 
 GAMEHOOK_REGISTRY(CBasePlayer_Spawn);
@@ -465,6 +501,7 @@ GAMEHOOK_REGISTRY(CBasePlayer_TakeDamageImpulse);
 
 GAMEHOOK_REGISTRY(SendSayMessage);
 GAMEHOOK_REGISTRY(CSBot_SeesPlayer);
+GAMEHOOK_REGISTRY(CSBot_CanTravel);
 
 int CReGameApi::GetMajorVersion() {
 	return REGAMEDLL_API_VERSION_MAJOR;

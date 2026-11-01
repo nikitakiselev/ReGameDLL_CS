@@ -38,7 +38,7 @@
 #include <API/CSInterfaces.h>
 
 #define REGAMEDLL_API_VERSION_MAJOR 5
-#define REGAMEDLL_API_VERSION_MINOR 33
+#define REGAMEDLL_API_VERSION_MINOR 34
 
 // CBasePlayer::Spawn hook
 typedef IHookChainClass<void, class CBasePlayer> IReGameHook_CBasePlayer_Spawn;
@@ -645,6 +645,11 @@ typedef IHookChainRegistry<void, CBasePlayer *, const char *, BOOL, const char*,
 typedef IHookChain<bool, CBasePlayer *, CBasePlayer *, unsigned char, float> IReGameHook_CSBot_SeesPlayer;
 typedef IHookChainRegistry<bool, CBasePlayer *, CBasePlayer *, unsigned char, float> IReGameHookRegistry_CSBot_SeesPlayer;
 
+// ls2: path endpoints are feet; command endpoints are player origins.
+// planning=false also lets an adapter hold position while firing at a building.
+typedef IHookChain<bool, CBasePlayer *, const Vector &, const Vector &, bool> IReGameHook_CSBot_CanTravel;
+typedef IHookChainRegistry<bool, CBasePlayer *, const Vector &, const Vector &, bool> IReGameHookRegistry_CSBot_CanTravel;
+
 class IReGameHookchains {
 public:
 	virtual ~IReGameHookchains() {}
@@ -813,6 +818,7 @@ public:
 
 	virtual IReGameHookRegistry_SendSayMessage *SendSayMessage() = 0;
 	virtual IReGameHookRegistry_CSBot_SeesPlayer *CSBot_SeesPlayer() = 0;
+	virtual IReGameHookRegistry_CSBot_CanTravel *CSBot_CanTravel() = 0;
 };
 
 struct ReGameFuncs_t {
@@ -859,6 +865,8 @@ struct ReGameFuncs_t {
 	bool (*CSBot_RetreatFrom)(class CBasePlayer *pBot, const Vector &from, float range, float duration);
 	void (*CSBot_MarkDanger)(int team, const Vector &pos, float range, float amount);
 	void (*CSBot_SetObstacles)(const float *boxes, int count);
+	bool (*CSBot_Visible)(CBasePlayer *pBot, const Vector &pos);
+	bool (*CSBot_Repath)(CBasePlayer *pBot);
 };
 
 class IReGameApi {

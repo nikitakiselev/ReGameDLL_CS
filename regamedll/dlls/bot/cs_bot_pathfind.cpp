@@ -1334,6 +1334,22 @@ CCSBot::PathResult CCSBot::UpdatePathMovement(bool allowSpeedChange)
 	int prevIndex = 0;				// closest index on path just prior to where we are now
 	const float aheadRange = 300.0f;
 	int newIndex = FindPathPoint(aheadRange, &m_goalPosition, &prevIndex);
+	Vector feet(pev->origin.x, pev->origin.y, GetFeetZ());
+	if (!CSBot_CanTravel(this, feet, m_goalPosition, true))
+	{
+		// Do not smooth a valid bend across an adapter's forbidden segment.
+		int next = m_pathIndex;
+		while (next < m_pathLength - 1 && (m_path[next].pos - feet).IsLengthLessThan(20.0f))
+			++next;
+		if (!CSBot_CanTravel(this, feet, m_path[next].pos, true))
+		{
+			DestroyPath();
+			return PATH_FAILURE;
+		}
+		m_goalPosition = m_path[next].pos;
+		newIndex = next;
+		prevIndex = next - 1;
+	}
 
 	// BOTPORT: Why is prevIndex sometimes -1?
 	if (prevIndex < 0)
@@ -1605,6 +1621,22 @@ void CCSBot::BuildTrivialPath(const Vector *goal)
 
 // Compute shortest path to goal position via A* algorithm
 // If 'goalArea' is NULL, path will get as close as it can.
+LINK_HOOK_CHAIN(bool, CSBot_CanTravel, (CBasePlayer *bot, const Vector &from, const Vector &to, bool planning), bot, from, to, planning)
+
+bool EXT_FUNC __API_HOOK(CSBot_CanTravel)(CBasePlayer *bot, const Vector &from, const Vector &to, bool planning)
+{
+	return true;
+}
+
+bool CCSBot::Repath()
+{
+	if (!HasPath())
+		return false;
+	Vector goal = GetPathEndpoint();
+	m_repathTimer.Invalidate();
+	return ComputePath(TheNavAreaGrid.GetNearestNavArea(&goal), &goal, SAFEST_ROUTE);
+}
+
 bool CCSBot::ComputePath(CNavArea *goalArea, const Vector *goal, RouteType route)
 {
 	// Throttle re-pathing
@@ -1637,9 +1669,49 @@ bool CCSBot::ComputePath(CNavArea *goalArea, const Vector *goal, RouteType route
 	else
 		GetGroundHeight(&pathEndPosition, &pathEndPosition.z);
 
+	// A finite forbidden segment can split one large nav area without
+	// disconnecting it. Try bounded, physically clear bends before giving up.
+	auto localDetour = [&]() -> bool {
+		Vector feet(pev->origin.x, pev->origin.y, GetFeetZ());
+		for (float radius : {64.0f, 128.0f, 256.0f, 512.0f, 768.0f})
+		{
+			for (int direction = 0; direction < 16; ++direction)
+			{
+				float angle = direction * (2.0f * M_PI / 16.0f);
+				Vector bend = feet + Vector(cos(angle) * radius, sin(angle) * radius, 0);
+				CNavArea *area = TheNavAreaGrid.GetNavArea(&bend);
+				if (!area)
+					continue;
+				bend.z = area->GetZ(&bend);
+				if (!CSBot_CanTravel(this, feet, bend, true) || !CSBot_CanTravel(this, bend, pathEndPosition, true))
+					continue;
+				TraceResult first, second;
+				UTIL_TraceHull(feet + Vector(0, 0, HalfHumanHeight), bend + Vector(0, 0, HalfHumanHeight),
+					ignore_monsters, human_hull, edict(), &first);
+				UTIL_TraceHull(bend + Vector(0, 0, HalfHumanHeight), pathEndPosition + Vector(0, 0, HalfHumanHeight),
+					ignore_monsters, human_hull, edict(), &second);
+				if (first.fStartSolid || second.fStartSolid || first.flFraction < 1 || second.flFraction < 1)
+					continue;
+				BuildTrivialPath(&pathEndPosition);
+				m_path[2] = m_path[1];
+				m_path[2].pos = pathEndPosition;
+				m_path[2].area = goalArea ? goalArea : area;
+				m_path[1].pos = bend;
+				m_path[1].area = area;
+				m_pathLength = 3;
+				m_goalPosition = bend;
+				return true;
+			}
+		}
+		return false;
+	};
+
 	// if we are already in the goal area, build trivial path
 	if (startArea == goalArea)
 	{
+		Vector feet(pev->origin.x, pev->origin.y, GetFeetZ());
+		if (!CSBot_CanTravel(this, feet, pathEndPosition, true))
+			return localDetour();
 		BuildTrivialPath(&pathEndPosition);
 		return true;
 	}
@@ -1650,6 +1722,8 @@ bool CCSBot::ComputePath(CNavArea *goalArea, const Vector *goal, RouteType route
 	bool pathToGoalExists = NavAreaBuildPath(startArea, goalArea, goal, pathCost, &closestArea);
 
 	CNavArea *effectiveGoalArea = (pathToGoalExists) ? goalArea : closestArea;
+	if (!pathToGoalExists && closestArea && !CSBot_CanTravel(this, *closestArea->GetCenter(), pathEndPosition, true))
+		return localDetour();
 
 	// Build path by following parent links
 	// get count
@@ -1669,6 +1743,9 @@ bool CCSBot::ComputePath(CNavArea *goalArea, const Vector *goal, RouteType route
 
 	if (count == 1)
 	{
+		Vector feet(pev->origin.x, pev->origin.y, GetFeetZ());
+		if (!CSBot_CanTravel(this, feet, pathEndPosition, true))
+			return localDetour();
 		BuildTrivialPath(&pathEndPosition);
 		return true;
 	}
@@ -1716,6 +1793,18 @@ bool CCSBot::ComputePath(CNavArea *goalArea, const Vector *goal, RouteType route
 	m_path[m_pathLength].ladder = nullptr;
 	m_path[m_pathLength].how = NUM_TRAVERSE_TYPES;
 	m_pathLength++;
+
+	// Check actual portals and endpoint as well as the A* area centres.
+	Vector previous(pev->origin.x, pev->origin.y, GetFeetZ());
+	for (int i = 1; i < m_pathLength; ++i)
+	{
+		if (!CSBot_CanTravel(this, previous, m_path[i].pos, true))
+		{
+			DestroyPath();
+			return localDetour();
+		}
+		previous = m_path[i].pos;
+	}
 
 	// do movement setup
 	m_pathIndex = 1;

@@ -765,6 +765,9 @@ typedef IHookChainRegistryImpl<void, CBasePlayer *, const char *, BOOL, const ch
 typedef IHookChainImpl<bool, CBasePlayer *, CBasePlayer *, unsigned char, float> CReGameHook_CSBot_SeesPlayer;
 typedef IHookChainRegistryImpl<bool, CBasePlayer *, CBasePlayer *, unsigned char, float> CReGameHookRegistry_CSBot_SeesPlayer;
 
+typedef IHookChainImpl<bool, CBasePlayer *, const Vector &, const Vector &, bool> CReGameHook_CSBot_CanTravel;
+typedef IHookChainRegistryImpl<bool, CBasePlayer *, const Vector &, const Vector &, bool> CReGameHookRegistry_CSBot_CanTravel;
+
 class CReGameHookchains: public IReGameHookchains {
 public:
 	// CBasePlayer virtual
@@ -931,6 +934,7 @@ public:
 
 	CReGameHookRegistry_SendSayMessage m_SendSayMessage;
 	CReGameHookRegistry_CSBot_SeesPlayer m_CSBot_SeesPlayer;
+	CReGameHookRegistry_CSBot_CanTravel m_CSBot_CanTravel;
 
 public:
 	virtual IReGameHookRegistry_CBasePlayer_Spawn *CBasePlayer_Spawn();
@@ -1097,6 +1101,7 @@ public:
 
 	virtual IReGameHookRegistry_SendSayMessage *SendSayMessage();
 	virtual IReGameHookRegistry_CSBot_SeesPlayer *CSBot_SeesPlayer();
+	virtual IReGameHookRegistry_CSBot_CanTravel *CSBot_CanTravel();
 };
 
 extern CReGameHookchains g_ReGameHookchains;
