@@ -8728,7 +8728,9 @@ void CBasePlayer::__API_HOOK(SwitchTeam)()
 	else
 		szName = "<unconnected>";
 
-	UTIL_ClientPrintAll(HUD_PRINTNOTIFY, (m_iTeam == TERRORIST) ? "#Game_join_terrorist_auto" : "#Game_join_ct_auto", szName);
+	// ls2: bots join silently, their join lines only clutter the chat
+	if (!IsBot())
+		UTIL_ClientPrintAll(HUD_PRINTNOTIFY, (m_iTeam == TERRORIST) ? "#Game_join_terrorist_auto" : "#Game_join_ct_auto", szName);
 
 	if (m_bHasDefuser)
 	{

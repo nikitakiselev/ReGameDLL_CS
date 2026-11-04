@@ -2186,8 +2186,10 @@ BOOL EXT_FUNC __API_HOOK(HandleMenu_ChooseTeam)(CBasePlayer *pPlayer, int slot)
 	szNewTeam = GetTeam(team);
 
 	// Notify others that this player has joined a new team
-	UTIL_ClientPrintAll(HUD_PRINTNOTIFY, (team == TERRORIST) ? "#Game_join_terrorist" : "#Game_join_ct",
-		(STRING(pPlayer->pev->netname) && STRING(pPlayer->pev->netname)[0] != 0) ? STRING(pPlayer->pev->netname) : "<unconnected>");
+	// ls2: bots join silently, their join lines only clutter the chat
+	if (!pPlayer->IsBot())
+		UTIL_ClientPrintAll(HUD_PRINTNOTIFY, (team == TERRORIST) ? "#Game_join_terrorist" : "#Game_join_ct",
+			(STRING(pPlayer->pev->netname) && STRING(pPlayer->pev->netname)[0] != 0) ? STRING(pPlayer->pev->netname) : "<unconnected>");
 
 	UTIL_LogPrintf("\"%s<%i><%s><%s>\" joined team \"%s\"\n", STRING(pPlayer->pev->netname), GETPLAYERUSERID(pPlayer->edict()), GETPLAYERAUTHID(pPlayer->edict()), szOldTeam, szNewTeam);
 	return TRUE;
